@@ -47,7 +47,6 @@ public class Game extends Canvas implements Runnable {
 				updates++;
 				delta--;//I don't think this accounts for a "catchup" feature
 			}
-			render();
 			frames++;
 			if(System.currentTimeMillis() - timer > 1000) {
 				timer += 1000;
@@ -84,6 +83,7 @@ public class Game extends Canvas implements Runnable {
 	}
 	
 	private void tick() {
+		render();
 	}
 	
 	private void render() {
