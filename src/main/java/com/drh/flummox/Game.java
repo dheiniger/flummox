@@ -6,8 +6,15 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import javax.swing.JFrame;
+
+import com.drh.flummox.assets.AssetLoader;
+import com.drh.flummox.assets.Tile;
 
 public class Game extends Canvas implements Runnable {
 
@@ -21,12 +28,15 @@ public class Game extends Canvas implements Runnable {
 	private boolean running = false;
 	private Thread thread;
 	
-	public static void main(String[] args) {
+	private GameContext gameContext;
+	
+	public static void main(String[] args) throws IOException {
 		createGame();
 	}
 	
 	public Game() {
 		//initialize stuff here
+		gameContext = new GameContext();
 	}
 	
 	public void run() {
@@ -47,7 +57,6 @@ public class Game extends Canvas implements Runnable {
 				updates++;
 				delta--;//I don't think this accounts for a "catchup" feature
 			}
-			render();
 			frames++;
 			if(System.currentTimeMillis() - timer > 1000) {
 				timer += 1000;
@@ -58,7 +67,7 @@ public class Game extends Canvas implements Runnable {
 		}
 	}
 	
-	private static void createGame() {
+	private static void createGame() throws IOException {
 		Game game = new Game();
 		game.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 		game.setMaximumSize(new Dimension(WIDTH, HEIGHT));
@@ -70,6 +79,15 @@ public class Game extends Canvas implements Runnable {
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
+		
+		URI uri;
+		try {
+			uri = ClassLoader.getSystemResource("maps/test.flmx").toURI();
+			game.gameContext.activeScreen.setTiles(AssetLoader.loadTilesFromFile(uri));
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		game.start();
 	}
@@ -84,6 +102,7 @@ public class Game extends Canvas implements Runnable {
 	}
 	
 	private void tick() {
+		render();
 	}
 	
 	private void render() {
@@ -94,6 +113,7 @@ public class Game extends Canvas implements Runnable {
 		}
 		
 		Graphics g = bufferStrategy.getDrawGraphics();
+		//TODO: for each renderable object in the gamecontext, render 
 		draw(g);
 		g.dispose();
 		bufferStrategy.show();
@@ -102,7 +122,11 @@ public class Game extends Canvas implements Runnable {
 	private void draw(Graphics g) {
 		g.setColor(Color.black);
 		g.fillRect(0, 0, WIDTH , HEIGHT);
-		g.setFont(new Font(Font.DIALOG, Font.BOLD, 24));
+		//TODO: for each drawable object in the gamecontext, draw
+		gameContext.activeScreen.draw(g);
+//		g.setFont(new Font(Font.DIALOG, Font.BOLD, 24));
+//		g.setColor(Color.white);
+//		g.drawString("hello", 50, 50);
 	}
 
 }
