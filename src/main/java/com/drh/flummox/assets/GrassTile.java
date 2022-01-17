@@ -1,14 +1,14 @@
 package com.drh.flummox.assets;
 
-public class WaterTile extends Tile {
+public class GrassTile extends Tile {
 
-	public WaterTile() {
+	public GrassTile() {
 		super();
 	}
 
 	@Override
 	public String getName() {
-		return "water";
+		return "grass";
 	}
 
 }

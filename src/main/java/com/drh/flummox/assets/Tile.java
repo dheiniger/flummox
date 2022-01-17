@@ -1,27 +1,29 @@
 package com.drh.flummox.assets;
 
-import java.awt.Color;
+import java.awt.image.BufferedImage;
 
 public abstract class Tile {
 
 	//TODO: can tiles have different heights?
-	public static final int WIDTH = 50;
-	public static final int HEIGHT = 50;
+	public static final int WIDTH = 64;
+	public static final int HEIGHT = 64;
+	public BufferedImage bufferedImage;
 //	private int width;
 //	private int height;
 	
 	public Tile() {
-//		this.width = 50;
-//		this.height = 50;
+		
 	}
 	
-	public Tile(int width, int height) {
-//		this.width = width;
-//		this.height = height;
+	public abstract String getName();
+
+	public BufferedImage getBufferedImage() {
+		return bufferedImage;
 	}
 
-	public abstract Color getColor();
-	
+	public void setBufferedImage(BufferedImage bufferedImage) {
+		this.bufferedImage = bufferedImage;
+	}
 	
 	/*
 	 * public int getWidth() { return width; }

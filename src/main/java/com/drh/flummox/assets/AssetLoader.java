@@ -5,11 +5,25 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+//This will obviously be improved...
 public class AssetLoader {
-	//This will obviously be improved...
-	public static Tile[][] loadTilesFromFile(URI uri) throws IOException {
+	public static Map<Character, Class<?>> tileTypes; 
+	static {
+		tileTypes = new HashMap<Character, Class<?>>();
+		tileTypes.put('0', GrassTile.class);
+		tileTypes.put('1', RockTile.class);
+		tileTypes.put('2', WaterTile.class);
+		tileTypes.put('3', Bush.class);
+		tileTypes.put('4', Log.class);	
+	}
+	
+	@SuppressWarnings("deprecation")
+	public static Tile[][] loadTilesFromFile(URI uri) throws IOException, InstantiationException, IllegalAccessException {
+		
 		Path path = Paths.get(uri);
 		List<String> lines = Files.readAllLines(path);
 		int numberOfLines = lines.size();
@@ -19,15 +33,14 @@ public class AssetLoader {
 			tiles[i] = new Tile[line.length];
 			for (int j = 0; j < line.length; j++) {
 				char character = line[j];
-				if (character == '0') {
-					tiles[i][j] = new RockTile();
-				} else if(character == '1' ){
-					tiles[i][j] = new WaterTile();
-				} else {
-					tiles[i][j] = null;
+				Class<?> tileType = (Class<?>) tileTypes.get(character);
+				if(tileType == null) {
+					continue;
 				}
+				tiles[i][j] = (Tile) tileTypes.get(character).newInstance();//TODO: find out why this is deprecated
 			}
 		}
 		return tiles;
 	}
+	
 }

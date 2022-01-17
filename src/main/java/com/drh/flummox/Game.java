@@ -3,27 +3,23 @@ package com.drh.flummox;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 import javax.swing.JFrame;
-
-import com.drh.flummox.assets.AssetLoader;
-import com.drh.flummox.assets.Tile;
 
 public class Game extends Canvas implements Runnable {
 
 	private static final long serialVersionUID = 1L;
-	private static final int SCALE = 1;
-	private static final int WIDTH = 1000 * SCALE;
-	private static final int HEIGHT = WIDTH;
+	private static final float SCALE = .75f;
+	private static final int SCREEN_WIDTH = (int) (1920 * SCALE);
+	private static final int SCREEN_HEIGHT = (int) (1024 * SCALE);
 	private static final String TITLE = "Untitled";
 	private static final double FPS = 60.0;
+
+//	private static int screenWidth;
+//	private static int screenHeight;
 	
 	private boolean running = false;
 	private Thread thread;
@@ -69,25 +65,20 @@ public class Game extends Canvas implements Runnable {
 	
 	private static void createGame() throws IOException {
 		Game game = new Game();
-		game.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-		game.setMaximumSize(new Dimension(WIDTH, HEIGHT));
-		game.setMinimumSize(new Dimension(WIDTH, HEIGHT));
-		JFrame frame = new JFrame(TITLE);
+		Dimension screenSize = new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT);
+		game.setPreferredSize(screenSize);
+		game.setMaximumSize(screenSize);
+		game.setMinimumSize(screenSize);
+		JFrame frame = new JFrame(TITLE);		
+//		GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().setFullScreenWindow(frame);
+//		screenWidth = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getFullScreenWindow().getWidth();
+//		screenHeight = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getFullScreenWindow().getHeight();
 		frame.add(game);
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setResizable(false);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
-		
-		URI uri;
-		try {
-			uri = ClassLoader.getSystemResource("maps/test.flmx").toURI();
-			game.gameContext.activeScreen.setTiles(AssetLoader.loadTilesFromFile(uri));
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
 		game.start();
 	}
@@ -106,12 +97,14 @@ public class Game extends Canvas implements Runnable {
 	}
 	
 	private void render() {
+		gameContext.activeScreen.render();
+		
 		BufferStrategy bufferStrategy = this.getBufferStrategy();
 		if(bufferStrategy == null) {
 			createBufferStrategy(3);
 			return;
 		}
-		
+				
 		Graphics g = bufferStrategy.getDrawGraphics();
 		//TODO: for each renderable object in the gamecontext, render 
 		draw(g);
@@ -121,7 +114,7 @@ public class Game extends Canvas implements Runnable {
 	
 	private void draw(Graphics g) {
 		g.setColor(Color.black);
-		g.fillRect(0, 0, WIDTH , HEIGHT);
+		g.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		//TODO: for each drawable object in the gamecontext, draw
 		gameContext.activeScreen.draw(g);
 //		g.setFont(new Font(Font.DIALOG, Font.BOLD, 24));
