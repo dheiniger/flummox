@@ -30,7 +30,11 @@ public class Game extends Canvas implements Runnable {
 	private GameContext gameContext;
 	
 	public static void main(String[] args) throws IOException {
-		createGame();
+		try{
+			createGame();
+		}catch (RuntimeException e){
+			LOGGER.error("An error occurred", e);
+		}
 	}
 	
 	public Game() {

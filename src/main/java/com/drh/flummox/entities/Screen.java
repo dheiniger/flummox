@@ -35,7 +35,7 @@ public class Screen implements GameObject {
 			LOGGER.error("Error loading assets", e);
 		}
 		
-		tileLayer = new ArrayList<Tile[][]>();
+		tileLayer = new ArrayList<>();
 		
 		URI uri;
 		try {
