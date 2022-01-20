@@ -24,11 +24,6 @@ public abstract class Bear extends Animation implements Creature {
 		IDLING
 	}	
 	
-//	private static final String ANIMATION_KEY_WALKING_RIGHT = "walking_right";
-//	private static final String ANIMATION_KEY_WALKING_LEFT = "walking_left";
-//	private static final String ANIMATION_KEY_WALKING_UP = "walking_up";
-//	private static final String ANIMATION_KEY_WALKING_DOWN = "walking_down";
-	
 	private static final int MIN_FRAMES_IN_GIVEN_STATE = 60 * 2;// 2 seconds
 	private static final int MAX_FRAMES_IN_GIVEN_STATE = 60 * 5;// 5 seconds		
 	private static final int BEAR_WIDTH = 48;
@@ -60,37 +55,37 @@ public abstract class Bear extends Animation implements Creature {
 	public void render() {
 		if(framesInCurrentState++ > framesToRemainInCurrentState) {
 			currentState = chooseRandomState();
-			calculateNumberOfFramesToRemainInState();
+			framesToRemainInCurrentState = calculateNumberOfFramesToRemainInState();
 			framesInCurrentState = 0;
-			return;
 		}			
 		
 		switch (currentState) {
 		case WALKING_DOWN: {
-			yLocation +=velocity;
+			yLocation += velocity;
 			break;
 		}
 		case WALKING_UP: {
-			yLocation -=velocity;
+			yLocation -= velocity;
 			break;
 		}
 		case WALKING_LEFT: {
-			xLocation -=velocity;
+			xLocation -= velocity;
 			break;
 		}
 		case WALKING_RIGHT: {
-			xLocation +=velocity;
+			xLocation += velocity;
 			break;
 		}
-		case IDLING: {			
+		case IDLING: {
 			break;
 		}
 		default:
+			System.out.println("error with bear state");
 			throw new IllegalArgumentException("Unexpected value: " + currentState);
 		}
 		
-		activeAnimation = animations.get(currentState);
 		activeAnimation.update();
+		activeAnimation = animations.get(currentState);
 	}
 
 	@Override
