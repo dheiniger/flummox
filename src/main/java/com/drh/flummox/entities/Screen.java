@@ -14,13 +14,16 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
+import com.drh.flummox.Game;
 import com.drh.flummox.GameObject;
 import com.drh.flummox.assets.AssetLoader;
 import com.drh.flummox.assets.Tile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 //TODO: this will probably be abstract eventually
 public class Screen implements GameObject {
-
+	private static final Logger LOGGER = LoggerFactory.getLogger(Screen.class);
 	private List<Tile[][]> tileLayer;
 	private Map<String, List<BufferedImage>> tileAssets;
 	private List<Creature> creatures;
@@ -29,11 +32,10 @@ public class Screen implements GameObject {
 		try {
 			loadAssets();
 		} catch (IOException e) {
-			System.out.println("Error loading assets");
-			e.printStackTrace();
+			LOGGER.error("Error loading assets", e);
 		}
 		
-		tileLayer = new ArrayList<Tile[][]>();
+		tileLayer = new ArrayList<>();
 		
 		URI uri;
 		try {
