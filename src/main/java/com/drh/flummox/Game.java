@@ -1,5 +1,8 @@
 package com.drh.flummox;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -10,7 +13,7 @@ import java.io.IOException;
 import javax.swing.JFrame;
 
 public class Game extends Canvas implements Runnable {
-
+	private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
 	private static final long serialVersionUID = 1L;
 	private static final float SCALE = .75f;
 	private static final int SCREEN_WIDTH = (int) (1920 * SCALE);
@@ -27,7 +30,11 @@ public class Game extends Canvas implements Runnable {
 	private GameContext gameContext;
 	
 	public static void main(String[] args) throws IOException {
-		createGame();
+		try{
+			createGame();
+		}catch (RuntimeException e){
+			LOGGER.error("An error occurred", e);
+		}
 	}
 	
 	public Game() {
@@ -56,7 +63,7 @@ public class Game extends Canvas implements Runnable {
 			frames++;
 			if(System.currentTimeMillis() - timer > 1000) {
 				timer += 1000;
-				System.out.println(updates + " Ticks, FPS, " + frames);
+				LOGGER.info(updates + " Ticks, FPS, " + frames);
 				updates = 0;
 				frames = 0;
 			}
