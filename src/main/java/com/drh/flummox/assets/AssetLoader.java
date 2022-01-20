@@ -1,6 +1,10 @@
 package com.drh.flummox.assets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +15,7 @@ import java.util.Map;
 
 //This will obviously be improved...
 public class AssetLoader {
+	private static Logger LOGGER = LoggerFactory.getLogger(AssetLoader.class);
 	public static Map<Character, Class<?>> tileTypes; 
 	static {
 		tileTypes = new HashMap<Character, Class<?>>();
@@ -21,9 +26,7 @@ public class AssetLoader {
 		tileTypes.put('4', Log.class);	
 	}
 	
-	@SuppressWarnings("deprecation")
 	public static Tile[][] loadTilesFromFile(URI uri) throws IOException, InstantiationException, IllegalAccessException {
-		
 		Path path = Paths.get(uri);
 		List<String> lines = Files.readAllLines(path);
 		int numberOfLines = lines.size();
@@ -37,7 +40,12 @@ public class AssetLoader {
 				if(tileType == null) {
 					continue;
 				}
-				tiles[i][j] = (Tile) tileTypes.get(character).newInstance();//TODO: find out why this is deprecated
+				try {
+					tiles[i][j] = (Tile) tileTypes.get(character).getDeclaredConstructor().newInstance();
+				} catch (InvocationTargetException | NoSuchMethodException e) {
+					LOGGER.error("An error occured while trying to load Tiles from File", e);
+					throw new RuntimeException(e);
+				}
 			}
 		}
 		return tiles;
