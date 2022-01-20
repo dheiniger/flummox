@@ -2,15 +2,15 @@ package com.drh.flummox.assets;
 
 import java.awt.image.BufferedImage;
 
-public class Bush extends Tile {
-
-	public Bush(Integer xLocation, Integer yLocation, BufferedImage bufferedImage) {
+public class Rock extends Tile {
+	
+	public Rock(Integer xLocation, Integer yLocation, BufferedImage bufferedImage) {
 		super(xLocation, yLocation, bufferedImage);
 	}
 
 	@Override
 	public String getName() {
-		return "bush";
+		return "rock";
 	}
 
 }

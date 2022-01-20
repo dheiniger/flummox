@@ -4,7 +4,7 @@ import java.awt.Graphics;
 
 public interface GameObject {
 
-	void render();
+	void update();
 
 	void draw(Graphics g);
 	

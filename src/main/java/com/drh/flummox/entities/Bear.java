@@ -14,7 +14,12 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class Bear extends Animation implements Creature {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(Bear.class);
 	
 	protected enum State {
 		WALKING_DOWN,
@@ -26,8 +31,8 @@ public abstract class Bear extends Animation implements Creature {
 	
 	private static final int MIN_FRAMES_IN_GIVEN_STATE = 60 * 2;// 2 seconds
 	private static final int MAX_FRAMES_IN_GIVEN_STATE = 60 * 5;// 5 seconds		
-	private static final int BEAR_WIDTH = 48;
-	private static final int BEAR_HEIGHT = 48;
+	protected static final int WIDTH = 48;
+	protected static final int HEIGHT = 48;
 	
 	protected Map<State, Animation> animations;
 	protected Animation activeAnimation;
@@ -37,7 +42,7 @@ public abstract class Bear extends Animation implements Creature {
 	private int framesToRemainInCurrentState;
 	private int xLocation;
 	private int yLocation;
-	private int velocity;
+	private float velocity;
 
 	public Bear(int xLocation, int yLocation) {
 		this.xLocation = xLocation;
@@ -52,7 +57,7 @@ public abstract class Bear extends Animation implements Creature {
 	}
 	
 	@Override
-	public void render() {
+	public void update() {
 		if(framesInCurrentState++ > framesToRemainInCurrentState) {
 			currentState = chooseRandomState();
 			framesToRemainInCurrentState = calculateNumberOfFramesToRemainInState();
@@ -80,7 +85,7 @@ public abstract class Bear extends Animation implements Creature {
 			break;
 		}
 		default:
-			System.out.println("error with bear state");
+			LOGGER.error("Bear in unknown state: {}", currentState);
 			throw new IllegalArgumentException("Unexpected value: " + currentState);
 		}
 		
@@ -90,11 +95,12 @@ public abstract class Bear extends Animation implements Creature {
 
 	@Override
 	public void draw(Graphics g) {
-		g.drawImage(activeAnimation.getCurrentImage(), xLocation, yLocation, BEAR_WIDTH, BEAR_HEIGHT, null);
+		g.drawImage(activeAnimation.getCurrentImage(), xLocation, yLocation, WIDTH, HEIGHT, null);
 	}
 	
 	protected abstract String getType();
 	
+	//TODO: this can probably be an interface method. Maybe animation can implement "Animatable"
 	protected void buildAnimations() {
 		animations = new HashMap<State, Animation>();
 		try {
@@ -116,7 +122,7 @@ public abstract class Bear extends Animation implements Creature {
 			
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Error animating bear. Exception: {}" , e.getMessage(), e);
 		}
 	}
 	
@@ -154,8 +160,42 @@ public abstract class Bear extends Animation implements Creature {
 		return new Random().nextInt(MAX_FRAMES_IN_GIVEN_STATE - MIN_FRAMES_IN_GIVEN_STATE) + MIN_FRAMES_IN_GIVEN_STATE;
 	}
 	
-	private State chooseRandomState() {
+	protected State chooseRandomState() {
 		return State.values()[new Random().nextInt(State.values().length)];
+	}
+	
+	protected void reverseState() {
+		switch (currentState) {
+		case WALKING_DOWN: {
+			currentState = State.WALKING_UP;
+			break;
+		}
+		case WALKING_UP: {
+			currentState = State.WALKING_DOWN;
+			break;
+		}
+		case WALKING_LEFT: {
+			currentState = State.WALKING_RIGHT;
+			break;
+		}
+		case WALKING_RIGHT: {
+			currentState = State.WALKING_LEFT;
+			break;
+		}
+		case IDLING: {
+			break;
+		}
+		default:
+			LOGGER.error("Bear in unknown state: {}", currentState);
+		}
+	}
+	
+	public int getxLocation() {
+		return xLocation;
+	}
+
+	public int getyLocation() {
+		return yLocation;
 	}
 
 	@Override

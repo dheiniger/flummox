@@ -4,7 +4,13 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Animation {
+	
+	@SuppressWarnings("unused")
+	private static final Logger LOGGER = LoggerFactory.getLogger(Animation.class);
 
 	private List<BufferedImage> images;
 	private BufferedImage currentImage;
@@ -22,26 +28,15 @@ public class Animation {
 	public Animation(List<BufferedImage> images) {
 		this();
 		this.images = images;
+		currentImage = images.get(0);
 	}
 	
-	public void setCurrentImage(BufferedImage currentImage) {
-		this.currentImage = currentImage;
-	}
-
 	public List<BufferedImage> getImages() {
 		return images;
 	}
 
-	public void setImages(List<BufferedImage> images) {
-		this.images = images;
-	}
-
 	public int getImageNumber() {
 		return imageNumber;
-	}
-
-	public void setImageNumber(int imageNumber) {
-		this.imageNumber = imageNumber;
 	}
 
 	public BufferedImage getCurrentImage() {
