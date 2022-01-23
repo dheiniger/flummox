@@ -86,7 +86,6 @@ public abstract class Bear extends Animation implements Creature {
 		}
 		default:
 			LOGGER.error("Bear in unknown state: {}", currentState);
-			throw new IllegalArgumentException("Unexpected value: " + currentState);
 		}
 		
 		activeAnimation.update();
@@ -164,6 +163,7 @@ public abstract class Bear extends Animation implements Creature {
 		return State.values()[new Random().nextInt(State.values().length)];
 	}
 	
+	//TODO: this should be "reverseDirection" and go in an abstract class or something
 	protected void reverseState() {
 		switch (currentState) {
 		case WALKING_DOWN: {

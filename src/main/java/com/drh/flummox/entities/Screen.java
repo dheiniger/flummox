@@ -1,6 +1,7 @@
 package com.drh.flummox.entities;
 
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URI;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
@@ -28,6 +30,9 @@ public class Screen implements GameObject {
 	private Map<String, List<BufferedImage>> tileAssets;
 //	private List<Creature> creatures;
 	private List<Bear> bears;
+	private List<Fox> foxes;
+	
+	private Random random = new Random();
 	
 	public Screen() {
 		try {
@@ -48,18 +53,31 @@ public class Screen implements GameObject {
 			LOGGER.error("Error building tiles from map: {}", e.getMessage(), e);
 		}
 		//TODO: try building this using the creature map or something
-		bears = new ArrayList<Bear>();
-		bears.add(new BlackBear(140, 140));
-		bears.add(new BlackBear(580, 350));
-		bears.add(new BrownBear(575, 450));
-		bears.add(new BlackBear(900, 250));
-		bears.add(new PaleBear(975, 520));
+	
+//		bears.add(new BlackBear(140, 140));
+//		bears.add(new BlackBear(580, 350));
+//		bears.add(new BrownBear(575, 450));
+//		bears.add(new BlackBear(900, 250));
+//		bears.add(new PaleBear(975, 520));
+		
+		spawnCreatures();
+		System.out.println("foxes = " + foxes);
+		System.out.println("bears = " + bears);
 	}
 	
 
 	@Override
 	public void update() {
-		//TODO: set this back to bears
+		//TODO: bears and foxes (and other creatures) should share the same class, and should be in one loop
+		for(Fox fox : foxes) {
+			for(Tile[][] tileLayer : tileLayers) {
+				if(GameUtils.checkCollision(fox, tileLayer)) {
+					fox.reverseDirection();
+				}
+				fox.update();
+			}
+		}
+		//TODO: set this back to creatures
 		for(Bear bear : bears) {
 			for(Tile[][] tileLayer : tileLayers) {
 				if(GameUtils.checkCollision(bear, tileLayer)) {
@@ -67,7 +85,8 @@ public class Screen implements GameObject {
 				}
 				bear.update();
 			}
-		}
+		}		
+		
 	}
 
 	@Override
@@ -94,6 +113,10 @@ public class Screen implements GameObject {
 //		for(Creature creature : creatures) {
 //			creature.draw(g);
 //		}
+		for(Fox fox : foxes) {
+			fox.draw(g);
+		}
+		
 		for(Bear bear : bears) {
 			bear.draw(g);
 		}
@@ -129,7 +152,59 @@ public class Screen implements GameObject {
 		tileAssets.put("water", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/water.png"))));
 		tileAssets.put("bush", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/bush.png"))));
 		tileAssets.put("log", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/log.png"))));
+	}
 
+	//This can surely be improved...
+	private void spawnCreatures() {
+		bears = new ArrayList<Bear>();
+		foxes = new ArrayList<Fox>();	
+		
+		//save all of the collidable indexes.  An index set will be collidable if any of the layers with those indexes are collidable.
+		Map<Point, Boolean> collidableIndexes = new HashMap<Point, Boolean>();
+		for(Tile[][] tileLayer : tileLayers) {
+			for(int i = 1; i < tileLayer.length; i++) {
+				Tile[] line = tileLayer[i];			
+				for(int j = 0; j < line.length; j++) {
+					Tile tile = line[j];
+					if(tile != null && !tile.isWalkable()) {
+						collidableIndexes.put(new Point(i,  j), true);
+					}
+				}			
+			}
+		}
+		
+		System.out.println("collidable indexes = " + collidableIndexes);
+		//just grab the base tile layer to get coordinates
+		Tile[][] tileLayer = tileLayers.get(0);
+		for(int i = 1; i < tileLayer.length; i++) {
+			Tile[] line = tileLayer[i];	
+			for(int j = 0; j < line.length; j++) {
+				boolean isCollidable = collidableIndexes.getOrDefault(new Point(i, j), false);
+				if(!isCollidable) {
+					int xLocation = j * Tile.WIDTH;
+					int yLocation = i * Tile.HEIGHT - Tile.HEIGHT;
+					//if the tile is not collidable, spawn a creature 10% of the time
+					if(random.nextInt(101) <= 10) {
+						if(random.nextInt(100) < 20) {
+							foxes.add(new Fox(xLocation, yLocation));
+						} else {
+							bears.add(spawnBear(i, j, xLocation, yLocation));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private Bear spawnBear(int i, int j, int xLocation, int yLocation) {
+		int randomNumber = random.nextInt(101);
+		if(randomNumber < 15) {
+			return new PaleBear(xLocation, yLocation);
+		} else if(randomNumber < 60) {
+			return new BrownBear(xLocation, yLocation);
+		} else {
+			return new BlackBear(xLocation, yLocation);
+		}
 	}
 	
 }

@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import com.drh.flummox.Game;
 import com.drh.flummox.assets.Tile;
 import com.drh.flummox.entities.Bear;
+import com.drh.flummox.entities.Fox;
 
 public class GameUtils {
 	
@@ -30,4 +31,21 @@ public class GameUtils {
 		return false;
 	}
 	
+	//TODO: should only need one method to check collision for all creatures
+	public static boolean checkCollision(Fox fox, Tile[][] tiles) {
+
+		for(int i = 0; i < tiles.length; i++) {
+			Tile[] tileRows = tiles[i];
+			if(tileRows != null) {
+				for(int j = 0; j < tileRows.length; j++) {
+					Tile tile = tileRows[j];				
+					if(tile != null && !tile.isWalkable() && tile.getBounds().intersects(fox.getBounds())) {
+						LOGGER.info("Fox is colliding!");
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
 }

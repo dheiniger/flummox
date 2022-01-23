@@ -76,7 +76,7 @@ public class AssetLoader {
 				if(tileType != null) {
 					//TODO: still need to get the bufferedImage parameter working.  
 					try {
-						LOGGER.debug("tileX = {}, tileY = {}", i, j, tileX, tileY);
+//						LOGGER.debug("tileX = {}, tileY = {}", i, j, tileX, tileY);
 						Constructor<Tile> constructor = (Constructor<Tile>) tileTypes.get(character).getDeclaredConstructor(Integer.class, Integer.class, BufferedImage.class);
 						tiles[i][j] = constructor.newInstance(tileX, tileY, null);
 					} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException | IllegalArgumentException | SecurityException e) {
