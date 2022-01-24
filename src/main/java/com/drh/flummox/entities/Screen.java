@@ -28,9 +28,9 @@ public class Screen implements GameObject {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Screen.class);
 	private List<Tile[][]> tileLayers;
 	private Map<String, List<BufferedImage>> tileAssets;
-//	private List<Creature> creatures;
-	private List<Bear> bears;
-	private List<Fox> foxes;
+	private List<AnimatedCreature> creatures;
+//	private List<Bear> bears;
+//	private List<Fox> foxes;
 	
 	private Random random = new Random();
 	
@@ -61,32 +61,21 @@ public class Screen implements GameObject {
 //		bears.add(new PaleBear(975, 520));
 		
 		spawnCreatures();
-		System.out.println("foxes = " + foxes);
-		System.out.println("bears = " + bears);
+//		System.out.println("foxes = " + foxes);
+//		System.out.println("bears = " + bears);
 	}
 	
 
 	@Override
 	public void update() {
-		//TODO: bears and foxes (and other creatures) should share the same class, and should be in one loop
-		for(Fox fox : foxes) {
+		for(AnimatedCreature creature : creatures) {
 			for(Tile[][] tileLayer : tileLayers) {
-				if(GameUtils.checkCollision(fox, tileLayer)) {
-					fox.reverseDirection();
+				if(GameUtils.checkCollision(creature, tileLayer)) {
+					creature.reverseDirection();
 				}
-				fox.update();
+				creature.update();
 			}
 		}
-		//TODO: set this back to creatures
-		for(Bear bear : bears) {
-			for(Tile[][] tileLayer : tileLayers) {
-				if(GameUtils.checkCollision(bear, tileLayer)) {
-					bear.reverseState();
-				}
-				bear.update();
-			}
-		}		
-		
 	}
 
 	@Override
@@ -102,23 +91,13 @@ public class Screen implements GameObject {
 							continue;
 						}
 						g.drawImage(tile.getBufferedImage(), tile.getxLocation(), tile.getyLocation(), Tile.WIDTH, Tile.HEIGHT, null);
-						if(!tile.isWalkable()) {
-//							g.drawRect(tile.getBounds().x, tile.getBounds().y, tile.getBounds().width, tile.getBounds().height);
-						}
 					}
 				}			
 			}
 		}
 
-//		for(Creature creature : creatures) {
-//			creature.draw(g);
-//		}
-		for(Fox fox : foxes) {
-			fox.draw(g);
-		}
-		
-		for(Bear bear : bears) {
-			bear.draw(g);
+		for(Creature creature : creatures) {
+			creature.draw(g);
 		}
 	}
 
@@ -156,8 +135,9 @@ public class Screen implements GameObject {
 
 	//This can surely be improved...
 	private void spawnCreatures() {
-		bears = new ArrayList<Bear>();
-		foxes = new ArrayList<Fox>();	
+//		bears = new ArrayList<Bear>();
+//		foxes = new ArrayList<Fox>();	
+		creatures = new ArrayList<AnimatedCreature>();
 		
 		//save all of the collidable indexes.  An index set will be collidable if any of the layers with those indexes are collidable.
 		Map<Point, Boolean> collidableIndexes = new HashMap<Point, Boolean>();
@@ -186,9 +166,9 @@ public class Screen implements GameObject {
 					//if the tile is not collidable, spawn a creature 10% of the time
 					if(random.nextInt(101) <= 10) {
 						if(random.nextInt(100) < 20) {
-							foxes.add(new Fox(xLocation, yLocation));
+							creatures.add(new Fox(xLocation, yLocation));
 						} else {
-							bears.add(spawnBear(i, j, xLocation, yLocation));
+							creatures.add(spawnBear(i, j, xLocation, yLocation));
 						}
 					}
 				}

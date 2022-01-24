@@ -2,22 +2,24 @@ package com.drh.flummox.entities;
 
 import java.awt.Graphics;
 import java.awt.Rectangle;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Fox extends Animation implements Creature  {
+import com.drh.flummox.utilities.game.ImageUtils;
+
+public class Fox extends AnimatedCreature {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Fox.class);
 	
@@ -29,13 +31,6 @@ public class Fox extends Animation implements Creature  {
 		SLEEPING
 	}
 	
-	private enum Direction {
-		LEFT,
-		RIGHT/*,
-		UP,
-		DOWN*/
-	}
-	
 	private List<State> movementStates; 
 	
 	//TODO: alot of this stuff should be able to go in a base class
@@ -45,8 +40,8 @@ public class Fox extends Animation implements Creature  {
 	protected static final int HEIGHT = 35;
 	
 	//key = state_direction
-	private Map<String, Animation> animations;
-	private Animation activeAnimation;
+	private Map<String, AnimatedCreature> animations;
+	private AnimatedCreature activeAnimation;
 	private State currentState;
 	private Direction currentDirection;
 	private int framesInCurrentState;
@@ -56,18 +51,19 @@ public class Fox extends Animation implements Creature  {
 	private float velocity;
 
 	public Fox(int xLocation, int yLocation) {
+		super(xLocation, yLocation);
 		this.xLocation = xLocation;
 		this.yLocation = yLocation;
 		framesInCurrentState = 0;
 		velocity = 1;
 		buildAnimations();
-		currentState = chooseRandomState();
-		currentDirection = chooseRandomDirection();
 		framesToRemainInCurrentState = calculateNumberOfFramesToRemainInState();
 		
 		movementStates = new ArrayList<State>();
 		movementStates.add(State.WALKING);
 		movementStates.add(State.CATCHING);
+		
+		updateStateAndDirection();
 		
 		activeAnimation = animations.get(buildAnimationKey());		
 	}
@@ -95,9 +91,8 @@ public class Fox extends Animation implements Creature  {
 		default:
 			
 		}
-		LOGGER.info("current state = " + currentState);
-		activeAnimation.update();
 		activeAnimation = animations.get(buildAnimationKey());
+		activeAnimation.update();
 	}
 	
 	@Override
@@ -118,7 +113,7 @@ public class Fox extends Animation implements Creature  {
 	}
 	
 	protected void buildAnimations() {
-		animations = new HashMap<String, Animation>();
+		animations = new HashMap<String, AnimatedCreature>();
 		try {
 			BufferedImage allAnimations = ImageIO.read(getClass().getResource("/creatures/fox/fox.png"));
 			BufferedImage idle1 = allAnimations.getSubimage(0, 0, 104, 15);		
@@ -133,42 +128,30 @@ public class Fox extends Animation implements Creature  {
 			List<BufferedImage> catchingRight = getSubImages(catching, 11, 18, getCatchingFrameWidths());
 			List<BufferedImage> sleepingRight = getSubImages(sleeping, 6, 15, getSleepingFrameWidths());
 			
-			List<BufferedImage> idle1Left = mirrorImages(idle1Right);
-			List<BufferedImage> idle2Left = mirrorImages(idle2Right);
-			List<BufferedImage> walkingLeft = mirrorImages(walkingRight);
-			List<BufferedImage> catchingLeft = mirrorImages(catchingRight);
-			List<BufferedImage> sleepingLeft = mirrorImages(sleepingRight);
+			List<BufferedImage> idle1Left = ImageUtils.mirrorImages(idle1Right);
+			List<BufferedImage> idle2Left = ImageUtils.mirrorImages(idle2Right);
+			List<BufferedImage> walkingLeft = ImageUtils.mirrorImages(walkingRight);
+			List<BufferedImage> catchingLeft = ImageUtils.mirrorImages(catchingRight);
+			List<BufferedImage> sleepingLeft = ImageUtils.mirrorImages(sleepingRight);
 			
-			animations.put(State.IDLE1.toString() + "_" + Direction.LEFT.toString(), new Animation(idle1Left));
-			animations.put(State.IDLE2.toString() + "_" + Direction.LEFT.toString(), new Animation(idle2Left));
-			animations.put(State.WALKING.toString() + "_" + Direction.LEFT.toString(), new Animation(walkingLeft));
-			animations.put(State.CATCHING.toString() + "_" + Direction.LEFT.toString(), new Animation(catchingLeft));
-			animations.put(State.SLEEPING.toString() + "_" + Direction.LEFT.toString(), new Animation(sleepingLeft));
+			animations.put(buildAnimationKey(State.IDLE1, Direction.LEFT), new AnimatedCreature(idle1Left));
+			animations.put(buildAnimationKey(State.IDLE2, Direction.LEFT), new AnimatedCreature(idle2Left));
+			animations.put(buildAnimationKey(State.WALKING, Direction.LEFT), new AnimatedCreature(walkingLeft));
+			animations.put(buildAnimationKey(State.CATCHING, Direction.LEFT), new AnimatedCreature(catchingLeft));
+			animations.put(buildAnimationKey(State.SLEEPING, Direction.LEFT), new AnimatedCreature(sleepingLeft));
 			
-			animations.put(State.IDLE1.toString() + "_" + Direction.RIGHT.toString(), new Animation(idle1Right));
-			animations.put(State.IDLE2.toString() + "_" + Direction.RIGHT.toString(), new Animation(idle2Right));
-			animations.put(State.WALKING.toString() + "_" + Direction.RIGHT.toString(), new Animation(walkingRight));
-			animations.put(State.CATCHING.toString() + "_" + Direction.RIGHT.toString(), new Animation(catchingRight));
-			animations.put(State.SLEEPING.toString() + "_" + Direction.RIGHT.toString(), new Animation(sleepingRight));
+			animations.put(buildAnimationKey(State.IDLE1, Direction.RIGHT), new AnimatedCreature(idle1Right));
+			animations.put(buildAnimationKey(State.IDLE2, Direction.RIGHT), new AnimatedCreature(idle2Right));
+			animations.put(buildAnimationKey(State.WALKING, Direction.RIGHT), new AnimatedCreature(walkingRight));
+			animations.put(buildAnimationKey(State.CATCHING, Direction.RIGHT), new AnimatedCreature(catchingRight));
+			animations.put(buildAnimationKey(State.SLEEPING, Direction.RIGHT), new AnimatedCreature(sleepingRight));
 			
 		} catch (IOException e) {
 			LOGGER.error("Error animating bear. Exception: {}" , e.getMessage(), e);
 		}
 	}
 	
-	//TODO: this will probably be useful in a utility class or something
-	private List<BufferedImage> mirrorImages(List<BufferedImage> images) {
-		List<BufferedImage> mirroredImages = new ArrayList<>();
-		for(BufferedImage image : images) {
-			AffineTransform affineTransform = AffineTransform.getScaleInstance(-1, 1);
-			affineTransform.translate(-image.getWidth(), 0);
-			AffineTransformOp op = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-			mirroredImages.add(op.filter(image, null));
-		}
-		return mirroredImages;
-	}
-	
-	private List<BufferedImage> getSubImages(BufferedImage image, int numberOfFrames, int spriteHeight, Map<Integer, Integer> spriteWidths) {
+	private List<BufferedImage> getSubImages(BufferedImage image, int numberOfFrames, int spriteHeight, List<Integer> spriteWidths) {
 		List<BufferedImage> images = new ArrayList<BufferedImage>(); 
 		int imageX = 0;
 		int imageY = 0;
@@ -181,19 +164,12 @@ public class Fox extends Animation implements Creature  {
 		return images;
 	}
 	
-	protected void reverseDirection() {
-		switch (currentDirection) {
-			case LEFT: {
-				currentDirection = Direction.RIGHT;
-				break;
-			}
-			case RIGHT: {
-				currentDirection = Direction.LEFT;
-				break;
-			}
-		}
+	private void updateStateAndDirection() {
+		currentState = chooseRandomState();
+		currentDirection = chooseRandomDirection();
 	}
 	
+	//TODO: this can probably go in a parent class
 	private int calculateNumberOfFramesToRemainInState() {
 		return new Random().nextInt(MAX_FRAMES_IN_GIVEN_STATE - MIN_FRAMES_IN_GIVEN_STATE) + MIN_FRAMES_IN_GIVEN_STATE;
 	}
@@ -201,82 +177,111 @@ public class Fox extends Animation implements Creature  {
 	private State chooseRandomState() {
 		return State.values()[new Random().nextInt(State.values().length)];
 	}
-	
-	private Direction chooseRandomDirection() {
-		return Direction.values()[new Random().nextInt(Direction.values().length)];
+
+	public Direction chooseRandomDirection() {
+		//for now, use a copy of the directions that excludes "up" and "down".  I know this 
+		List<Direction> remainingDirections = Arrays.asList(Direction.values()).stream().filter(d -> d == Direction.LEFT || d == Direction.RIGHT).collect(Collectors.toList());
+		return remainingDirections.get(new Random().nextInt(remainingDirections.size()));
 	}
-	
 	private String buildAnimationKey() {
 		return currentState.toString() + "_" + currentDirection.toString();
 	}
 	
+	private String buildAnimationKey(State state, Direction direction) {
+		return state.toString() + "_" + direction.toString();
+	}
+	
+	@Override
+	public void reverseDirection() {
+		switch (currentDirection) {
+		case LEFT: {
+			currentDirection = Direction.RIGHT;
+			break;
+		}
+		case RIGHT: {
+			currentDirection = Direction.LEFT;
+			break;
+		}
+		case UP: {
+			currentDirection = Direction.DOWN;
+			break;
+		}
+		case DOWN: {
+			currentDirection = Direction.UP;
+			break;
+		}
+		default:
+			LOGGER.error("Unknown direction");
+		}
+	}
+	
 	//TODO: I'm sure there's a way better way to do this..also, I think they can all be lists instead of maps
-	private static Map<Integer, Integer> getIdle1FrameWidths() {
-		Map<Integer, Integer> widths = new HashMap<Integer,Integer>();
-		widths.put(0, 21);
-		widths.put(1, 19);
-		widths.put(2, 20);
-		widths.put(3, 22);
-		widths.put(4, 20);
+	private static List<Integer> getIdle1FrameWidths() {
+		List<Integer> widths = new ArrayList<Integer>();
+		widths.add(21);
+		widths.add(19);
+		widths.add(20);
+		widths.add(22);
+		widths.add(20);
 		return widths;
 	}
 	
-	private static Map<Integer, Integer> getIdle2FrameWidths() {
-		Map<Integer, Integer> widths = new HashMap<Integer,Integer>();
-		widths.put(0, 21);
-		widths.put(1, 19);
-		widths.put(2, 20);
-		widths.put(3, 24);
-		widths.put(4, 22);
-		widths.put(5, 23);
-		widths.put(6, 19);
-		widths.put(7, 20);
-		widths.put(8, 20);
-		widths.put(9, 21);
-		widths.put(10, 19);
-		widths.put(11, 20);
-		widths.put(12, 22);
-		widths.put(13, 20);
+	private static List<Integer> getIdle2FrameWidths() {
+		List<Integer> widths = new ArrayList<Integer>();
+		widths.add(21);
+		widths.add(19);
+		widths.add(20);
+		widths.add(24);
+		widths.add(22);
+		widths.add(23);
+		widths.add(19);
+		widths.add(20);
+		widths.add(20);
+		widths.add(21);
+		widths.add(19);
+		widths.add(20);
+		widths.add(22);
+		widths.add(20);
 		return widths;
 	}
 	
-	private static Map<Integer, Integer> getWalkingFrameWidths() {
-		Map<Integer, Integer> widths = new HashMap<Integer,Integer>();
-		widths.put(0, 21);
-		widths.put(1, 19);
-		widths.put(2, 21);
-		widths.put(3, 22);
-		widths.put(4, 23);
-		widths.put(5, 23);
-		widths.put(6, 19);
-		widths.put(7, 20);
+	private static List<Integer> getWalkingFrameWidths() {
+		List<Integer> widths = new ArrayList<Integer>();
+		widths.add(21);
+		widths.add(19);
+		widths.add(21);
+		widths.add(22);
+		widths.add(23);
+		widths.add(23);
+		widths.add(19);
+		widths.add(20);
 		return widths;
 	}
 	
-	private static Map<Integer, Integer> getCatchingFrameWidths() {
-		Map<Integer, Integer> widths = new HashMap<Integer,Integer>();
-		widths.put(0, 21);
-		widths.put(1, 19);
-		widths.put(2, 20);
-		widths.put(3, 22);
-		widths.put(4, 23);
-		widths.put(5, 24);
-		widths.put(6, 20);
-		widths.put(7, 19);
-		widths.put(8, 20);
-		widths.put(9, 20);
-		widths.put(10, 19);
+	private static List<Integer> getCatchingFrameWidths() {
+		List<Integer> widths = new ArrayList<Integer>();
+		widths.add(21);
+		widths.add(19);
+		widths.add(20);
+		widths.add(22);
+		widths.add(23);
+		widths.add(24);
+		widths.add(20);
+		widths.add(19);
+		widths.add(20);
+		widths.add(20);
+		widths.add(19);
 		return widths;
 	}
 	
-	private static Map<Integer, Integer> getSleepingFrameWidths() {
-		Map<Integer, Integer> widths = new HashMap<Integer,Integer>();
-		widths.put(0, 20);
-		widths.put(1, 20);
-		widths.put(2, 22);
-		widths.put(3, 22);
-		widths.put(4, 22);
-		widths.put(5, 18);
+	private static List<Integer> getSleepingFrameWidths() {
+		List<Integer> widths = new ArrayList<Integer>();
+		widths.add(20);
+		widths.add(20);
+		widths.add(22);
+		widths.add(22);
+		widths.add(22);
+		widths.add(18);
 		return widths;
 	}
 

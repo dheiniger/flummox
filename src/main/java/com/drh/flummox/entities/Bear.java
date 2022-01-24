@@ -1,8 +1,7 @@
 package com.drh.flummox.entities;
 
 import java.awt.Graphics;
-import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,22 +10,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class Bear extends Animation implements Creature {
+import com.drh.flummox.utilities.game.ImageUtils;
+
+public abstract class Bear extends AnimatedCreature {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(Bear.class);
 	
 	protected enum State {
-		WALKING_DOWN,
-		WALKING_UP,
-		WALKING_LEFT,
-		WALKING_RIGHT,
-		IDLING
+		WALKING_HORIZONTALLY,
+		WALKING_VERTICALLY,		
+		IDLE
 	}	
 	
 	private static final int MIN_FRAMES_IN_GIVEN_STATE = 60 * 2;// 2 seconds
@@ -34,74 +34,87 @@ public abstract class Bear extends Animation implements Creature {
 	protected static final int WIDTH = 48;
 	protected static final int HEIGHT = 48;
 	
-	protected Map<State, Animation> animations;
-	protected Animation activeAnimation;
+	//key = state_direction
+	protected Map<String, AnimatedCreature> animations;
+	protected AnimatedCreature activeAnimation;
+	protected List<State> movementStates; 
 	protected State currentState;
+	protected Direction currentDirection;
 	
 	private int framesInCurrentState;
 	private int framesToRemainInCurrentState;
-	private int xLocation;
-	private int yLocation;
-	private float velocity;
+	private int velocity;
 
+	protected abstract String getType();
+	
 	public Bear(int xLocation, int yLocation) {
-		this.xLocation = xLocation;
-		this.yLocation = yLocation;		
+		super(xLocation, yLocation);
 		framesInCurrentState = 0;
 		velocity = 1;
-		buildAnimations();
-		//initialize the bear to a random state
-		currentState = chooseRandomState();
+		buildAnimations();		
+		
 		framesToRemainInCurrentState = calculateNumberOfFramesToRemainInState();
-		activeAnimation = animations.get(currentState);
+		
+		movementStates = new ArrayList<State>();
+		movementStates.add(State.WALKING_HORIZONTALLY);
+		movementStates.add(State.WALKING_VERTICALLY);
+
+		updateStateAndDirection();
+		
+		activeAnimation = animations.get(buildAnimationKey());
 	}
 	
 	@Override
 	public void update() {
 		if(framesInCurrentState++ > framesToRemainInCurrentState) {
-			currentState = chooseRandomState();
+			updateStateAndDirection();
 			framesToRemainInCurrentState = calculateNumberOfFramesToRemainInState();
 			framesInCurrentState = 0;
 		}			
 		
-		switch (currentState) {
-		case WALKING_DOWN: {
-			yLocation += velocity;
+		switch (currentDirection) {
+		case LEFT: {
+			if(movementStates.contains(currentState)) {
+				setXLocation(getXLocation() - velocity);
+			}
 			break;
 		}
-		case WALKING_UP: {
-			yLocation -= velocity;
+		case RIGHT: {
+			if(movementStates.contains(currentState)) {
+				setXLocation(getXLocation() + velocity);
+			}
 			break;
 		}
-		case WALKING_LEFT: {
-			xLocation -= velocity;
+		case UP: {
+			if(movementStates.contains(currentState)) {
+				setYLocation(getYLocation() - velocity);
+			}
 			break;
 		}
-		case WALKING_RIGHT: {
-			xLocation += velocity;
-			break;
-		}
-		case IDLING: {
+		case DOWN: {
+			if(movementStates.contains(currentState)) {
+				setYLocation(getYLocation() + velocity);
+			}
 			break;
 		}
 		default:
-			LOGGER.error("Bear in unknown state: {}", currentState);
+			
 		}
-		
+		System.out.println("key = " + buildAnimationKey());
 		activeAnimation.update();
-		activeAnimation = animations.get(currentState);
+		//TODO: fix this.  Currently assuming if the key isn't found, the state is "IDLE"
+		activeAnimation = animations.get(buildAnimationKey());
 	}
 
 	@Override
 	public void draw(Graphics g) {
-		g.drawImage(activeAnimation.getCurrentImage(), xLocation, yLocation, WIDTH, HEIGHT, null);
+		System.out.println("activeAnimation = " + activeAnimation);
+		g.drawImage(activeAnimation.getCurrentImage(), getXLocation(), getYLocation(), WIDTH, HEIGHT, null);
 	}
-	
-	protected abstract String getType();
 	
 	//TODO: this can probably be an interface method. Maybe animation can implement "Animatable"
 	protected void buildAnimations() {
-		animations = new HashMap<State, Animation>();
+		animations = new HashMap<String, AnimatedCreature>();
 		try {
 			BufferedImage allBearAnimations = ImageIO.read(getClass().getResource(String.format("/creatures/bear/%s/bear.png", getType())));
 			BufferedImage walkingRight = allBearAnimations.getSubimage(0, 0, 65, 16);//TODO: avoid hardcoding			
@@ -111,13 +124,12 @@ public abstract class Bear extends Animation implements Creature {
 			List<BufferedImage> walkingRightImages = getSubImages(walkingRight);
 			List<BufferedImage> walkingDownImages = getSubImages(walkingDown);
 			
-			animations.put(State.WALKING_RIGHT, new Animation(walkingRightImages));
-			animations.put(State.WALKING_UP, new Animation(getSubImages(walkingUp)));
-			animations.put(State.WALKING_DOWN, new Animation(walkingDownImages));
-			//for "walking left", just flip the "walking right" animations
-			animations.put(State.WALKING_LEFT, new Animation(mirrorImages(walkingRightImages)));
+			animations.put(buildAnimationKey(State.WALKING_HORIZONTALLY, Direction.RIGHT), new AnimatedCreature(walkingRightImages));
+			animations.put(buildAnimationKey(State.WALKING_VERTICALLY, Direction.UP), new AnimatedCreature(getSubImages(walkingUp)));
+			animations.put(buildAnimationKey(State.WALKING_VERTICALLY, Direction.DOWN), new AnimatedCreature(walkingDownImages));
+			animations.put(buildAnimationKey(State.WALKING_HORIZONTALLY, Direction.LEFT), new AnimatedCreature(ImageUtils.mirrorImages(walkingRightImages)));
 			//for "idling", just use the first "walking down" image
-			animations.put(State.IDLING, new Animation(Arrays.asList(walkingDownImages.get(0))));
+			animations.put(buildAnimationKey(State.IDLE, Direction.DOWN), new AnimatedCreature(Arrays.asList(walkingDownImages.get(0))));
 			
 			
 		} catch (IOException e) {
@@ -125,16 +137,22 @@ public abstract class Bear extends Animation implements Creature {
 		}
 	}
 	
+	//TODO: this should probably be revisited.  The state should most likely determine the animation, and the draw should draw/mirror depending on the direction.  Then we don't have to keep track of as many animation combinations
+	private void updateStateAndDirection() {
+		currentState = chooseRandomState();
+		currentDirection = chooseRandomDirection();
+	}
+	
 	private List<BufferedImage> getSubImages(BufferedImage image) {
 		List<BufferedImage> images = new ArrayList<BufferedImage>(); 
 		int imageX = 0;
 		int imageY = 0;
-		//TODO: this is hacky, but the spritesheet wasn't consistent.  This is (hopefully) very temporary
-		Map<Integer, Integer> spriteWidths = new HashMap<Integer, Integer>();
-		spriteWidths.put(0, 16);
-		spriteWidths.put(1, 16);
-		spriteWidths.put(2, 17);
-		spriteWidths.put(3, 16);
+		//TODO: rework this with config files or something
+		List<Integer> spriteWidths = new ArrayList<Integer>();
+		spriteWidths.add(16);
+		spriteWidths.add(16);
+		spriteWidths.add(17);
+		spriteWidths.add(16);
 		for(int i = 0; i < 4; i++) {			
 			int width = spriteWidths.get(i);					
 			images.add(image.getSubimage(imageX, imageY, width, 16));
@@ -143,66 +161,71 @@ public abstract class Bear extends Animation implements Creature {
 		return images;
 	}
 	
-	//TODO: this will probably be useful in a utility class or something
-	private List<BufferedImage> mirrorImages(List<BufferedImage> images) {
-		List<BufferedImage> mirroredImages = new ArrayList<>();
-		for(BufferedImage image : images) {
-			AffineTransform affineTransform = AffineTransform.getScaleInstance(-1, 1);
-			affineTransform.translate(-image.getWidth(), 0);
-			AffineTransformOp op = new AffineTransformOp(affineTransform, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-			mirroredImages.add(op.filter(image, null));
-		}
-		return mirroredImages;
-	}
-	
 	private int calculateNumberOfFramesToRemainInState() {
 		return new Random().nextInt(MAX_FRAMES_IN_GIVEN_STATE - MIN_FRAMES_IN_GIVEN_STATE) + MIN_FRAMES_IN_GIVEN_STATE;
 	}
 	
-	protected State chooseRandomState() {
+	public State chooseRandomState() {
 		return State.values()[new Random().nextInt(State.values().length)];
 	}
 	
-	//TODO: this should be "reverseDirection" and go in an abstract class or something
-	protected void reverseState() {
-		switch (currentState) {
-		case WALKING_DOWN: {
-			currentState = State.WALKING_UP;
+	@Override
+	public Rectangle getBounds() {
+		return new Rectangle(getXLocation(), getYLocation(), Fox.WIDTH, Fox.HEIGHT);
+	}
+	
+	@Override
+	public void reverseDirection() {
+		switch (currentDirection) {
+		case LEFT: {
+			currentDirection = Direction.RIGHT;
 			break;
 		}
-		case WALKING_UP: {
-			currentState = State.WALKING_DOWN;
+		case RIGHT: {
+			currentDirection = Direction.LEFT;
 			break;
 		}
-		case WALKING_LEFT: {
-			currentState = State.WALKING_RIGHT;
+		case UP: {
+			currentDirection = Direction.DOWN;
 			break;
 		}
-		case WALKING_RIGHT: {
-			currentState = State.WALKING_LEFT;
-			break;
-		}
-		case IDLING: {
+		case DOWN: {
+			currentDirection = Direction.UP;
 			break;
 		}
 		default:
-			LOGGER.error("Bear in unknown state: {}", currentState);
+			LOGGER.error("Unknown direction");
 		}
 	}
 	
-	public int getxLocation() {
-		return xLocation;
+	public Direction chooseRandomDirection() {
+		//determine the direction based on the state
+		if(currentState == State.WALKING_HORIZONTALLY) {
+			List<Direction> horizontalDirections = Arrays.asList(Direction.values()).stream().filter(d -> d == Direction.LEFT || d == Direction.RIGHT).collect(Collectors.toList());
+			return horizontalDirections.get(new Random().nextInt(horizontalDirections.size()));
+		} else if(currentState == State.WALKING_VERTICALLY) {
+			List<Direction> verticalDirections = Arrays.asList(Direction.values()).stream().filter(d -> d == Direction.UP || d == Direction.DOWN).collect(Collectors.toList());
+			return verticalDirections.get(new Random().nextInt(verticalDirections.size()));
+		} else if(currentState == State.IDLE) {
+			return Direction.DOWN;
+		}
+		return null;
 	}
-
-	public int getyLocation() {
-		return yLocation;
+	
+	private String buildAnimationKey() {
+		return currentState.toString() + "_" + currentDirection.toString();
 	}
-
+	
+	private String buildAnimationKey(State state, Direction direction) {
+		return state.toString() + "_" + direction.toString();
+	}
+	
 	@Override
 	public String toString() {
-		return "Bear [animations=" + animations + ", activeAnimation=" + activeAnimation + ", currentState="
-				+ currentState + ", framesInCurrentState=" + framesInCurrentState + ", framesToRemainInCurrentState="
-				+ framesToRemainInCurrentState + ", xLocation=" + xLocation + ", yLocation=" + yLocation + "]";
+		return "Bear [animations=" + animations + ", activeAnimation=" + activeAnimation + ", movementStates="
+				+ movementStates + ", currentState=" + currentState + ", currentDirection=" + currentDirection
+				+ ", framesInCurrentState=" + framesInCurrentState + ", framesToRemainInCurrentState="
+				+ framesToRemainInCurrentState + ", velocity=" + velocity + "]";
 	}
 	
 	

@@ -7,5 +7,5 @@ import com.drh.flummox.GameObject;
 public interface Creature extends GameObject {
 	
 	Rectangle getBounds();
-
+	
 }
