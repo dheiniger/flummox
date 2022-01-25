@@ -1,6 +1,7 @@
 package com.drh.flummox.entities;
 
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URI;
@@ -14,19 +15,24 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
-import com.drh.flummox.Game;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.drh.flummox.GameObject;
 import com.drh.flummox.assets.AssetLoader;
 import com.drh.flummox.assets.Tile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.drh.flummox.utilities.game.GameUtils;
 
 //TODO: this will probably be abstract eventually
 public class Screen implements GameObject {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Screen.class);
-	private List<Tile[][]> tileLayer;
+	private List<Tile[][]> tileLayers;
 	private Map<String, List<BufferedImage>> tileAssets;
-	private List<Creature> creatures;
+	private List<AnimatedCreature> creatures;
+//	private List<Bear> bears;
+//	private List<Fox> foxes;
+	
+	private Random random = new Random();
 	
 	public Screen() {
 		try {
@@ -35,60 +41,46 @@ public class Screen implements GameObject {
 			LOGGER.error("Error loading assets", e);
 		}
 		
-		tileLayer = new ArrayList<>();
+		tileLayers = new ArrayList<>();
 		
 		URI uri;
 		try {
 			uri = ClassLoader.getSystemResource("maps/overworld/baseLayer.flmx").toURI();
-			tileLayer.add(buildTileSet(AssetLoader.loadTilesFromFile(uri)));
+			tileLayers.add(AssetLoader.buildTileSet(uri, tileAssets));
 			uri = ClassLoader.getSystemResource("maps/overworld/decorativeLayer.flmx").toURI();
-			tileLayer.add(buildTileSet(AssetLoader.loadTilesFromFile(uri)));
-		} catch (URISyntaxException | IOException | InstantiationException | IllegalAccessException e) {
-			e.printStackTrace();
+			tileLayers.add(AssetLoader.buildTileSet(uri, tileAssets));
+		} catch (URISyntaxException e) {
+			LOGGER.error("Error building tiles from map: {}", e.getMessage(), e);
 		}
 		//TODO: try building this using the creature map or something
-		creatures = new ArrayList<Creature>();
-		creatures.add(new BlackBear(80, 80));
-		creatures.add(new BlackBear(144, 64));
-		creatures.add(new BrownBear(700, 400));
-		creatures.add(new BlackBear(640, 560));
-		creatures.add(new PaleBear(96, 420));
+	
+//		bears.add(new BlackBear(140, 140));
+//		bears.add(new BlackBear(580, 350));
+//		bears.add(new BrownBear(575, 450));
+//		bears.add(new BlackBear(900, 250));
+//		bears.add(new PaleBear(975, 520));
+		
+		spawnCreatures();
+//		System.out.println("foxes = " + foxes);
+//		System.out.println("bears = " + bears);
 	}
 	
-	private Tile[][] buildTileSet(Tile[][] tileSet) {
-		for(int i = 0; i < tileSet.length; i++) {
-			if(tileSet[i] == null) {
-				continue;
-			}
-			for(int j = 0; j < tileSet[i].length; j++) {
-				Tile tile = tileSet[i][j];
-				if(tile == null) {
-					continue;
-				}
-				List<BufferedImage> possibleTiles = tileAssets.get(tile.getName());
-				if(possibleTiles == null) {
-					continue;
-				}
-			    Random rand = new Random(); 
-			    BufferedImage randomImage = possibleTiles.get(rand.nextInt(possibleTiles.size()));
-			    tileSet[i][j].setBufferedImage(randomImage);
-			}
-		}
-		return tileSet;
-	}
 
 	@Override
-	public void render() {
-		for(Creature creature : creatures) {
-			creature.render();
+	public void update() {
+		for(AnimatedCreature creature : creatures) {
+			for(Tile[][] tileLayer : tileLayers) {
+				if(GameUtils.checkCollision(creature, tileLayer)) {
+					creature.reverseDirection();
+				}
+				creature.update();
+			}
 		}
 	}
 
 	@Override
 	public void draw(Graphics g) {
-		for(Tile[][] tileLayer : tileLayer) {
-			int tileX = 0;
-			int tileY = 0;
+		for(Tile[][] tileLayer : tileLayers) {
 			for(int i = 1; i < tileLayer.length; i++) {
 				Tile[] line = tileLayer[i];			
 				for(int j = 0; j < line.length; j++) {
@@ -98,12 +90,9 @@ public class Screen implements GameObject {
 						if(possibleTiles == null) {
 							continue;
 						}
-						g.drawImage(tile.getBufferedImage(), tileX, tileY, Tile.WIDTH, Tile.HEIGHT, null);
+						g.drawImage(tile.getBufferedImage(), tile.getxLocation(), tile.getyLocation(), Tile.WIDTH, Tile.HEIGHT, null);
 					}
-					tileX += Tile.WIDTH;
 				}			
-				tileX = 0;
-				tileY += Tile.HEIGHT;
 			}
 		}
 
@@ -113,6 +102,7 @@ public class Screen implements GameObject {
 	}
 
 	//TODO: make this an interface method?
+	//TODO: this should all probably go in the AssetLoader or something
 	private void loadAssets() throws IOException {
 		tileAssets = new HashMap<String, List<BufferedImage>>();
 		List<BufferedImage> grassTiles = new ArrayList<>();
@@ -129,7 +119,6 @@ public class Screen implements GameObject {
 		int rockTileXLocation = 0;
 		int rockTileYLocation = 0;
 		
-		
 		for(int i = 0; i < 4; i++) {
 			grassTiles.add(allGrassTiles.getSubimage(grassTileXLocation, grassTileYLocation, grassTileWidth, grassTileHeight));
 			grassTileXLocation += grassTileWidth;
@@ -142,7 +131,60 @@ public class Screen implements GameObject {
 		tileAssets.put("water", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/water.png"))));
 		tileAssets.put("bush", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/bush.png"))));
 		tileAssets.put("log", Arrays.asList(ImageIO.read(getClass().getResource("/tiles/forest/log.png"))));
+	}
 
+	//This can surely be improved...
+	private void spawnCreatures() {
+//		bears = new ArrayList<Bear>();
+//		foxes = new ArrayList<Fox>();	
+		creatures = new ArrayList<AnimatedCreature>();
+		
+		//save all of the collidable indexes.  An index set will be collidable if any of the layers with those indexes are collidable.
+		Map<Point, Boolean> collidableIndexes = new HashMap<Point, Boolean>();
+		for(Tile[][] tileLayer : tileLayers) {
+			for(int i = 1; i < tileLayer.length; i++) {
+				Tile[] line = tileLayer[i];			
+				for(int j = 0; j < line.length; j++) {
+					Tile tile = line[j];
+					if(tile != null && !tile.isWalkable()) {
+						collidableIndexes.put(new Point(i,  j), true);
+					}
+				}			
+			}
+		}
+		
+		System.out.println("collidable indexes = " + collidableIndexes);
+		//just grab the base tile layer to get coordinates
+		Tile[][] tileLayer = tileLayers.get(0);
+		for(int i = 1; i < tileLayer.length; i++) {
+			Tile[] line = tileLayer[i];	
+			for(int j = 0; j < line.length; j++) {
+				boolean isCollidable = collidableIndexes.getOrDefault(new Point(i, j), false);
+				if(!isCollidable) {
+					int xLocation = j * Tile.WIDTH;
+					int yLocation = i * Tile.HEIGHT - Tile.HEIGHT;
+					//if the tile is not collidable, spawn a creature 10% of the time
+					if(random.nextInt(101) <= 10) {
+						if(random.nextInt(100) < 20) {
+							creatures.add(new Fox(xLocation, yLocation));
+						} else {
+							creatures.add(spawnBear(i, j, xLocation, yLocation));
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private Bear spawnBear(int i, int j, int xLocation, int yLocation) {
+		int randomNumber = random.nextInt(101);
+		if(randomNumber < 15) {
+			return new PaleBear(xLocation, yLocation);
+		} else if(randomNumber < 60) {
+			return new BrownBear(xLocation, yLocation);
+		} else {
+			return new BlackBear(xLocation, yLocation);
+		}
 	}
 	
 }

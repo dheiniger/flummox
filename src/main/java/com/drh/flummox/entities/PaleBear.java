@@ -11,5 +11,4 @@ public class PaleBear extends Bear {
 	protected String getType() {
 		return "pale";
 	}
-	
 }

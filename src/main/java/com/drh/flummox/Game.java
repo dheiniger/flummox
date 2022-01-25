@@ -100,11 +100,11 @@ public class Game extends Canvas implements Runnable {
 	}
 	
 	private void tick() {
-		render();
+		update();
 	}
 	
-	private void render() {
-		gameContext.activeScreen.render();
+	private void update() {
+		gameContext.activeScreen.update();
 		
 		BufferStrategy bufferStrategy = this.getBufferStrategy();
 		if(bufferStrategy == null) {
@@ -122,11 +122,7 @@ public class Game extends Canvas implements Runnable {
 	private void draw(Graphics g) {
 		g.setColor(Color.black);
 		g.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-		//TODO: for each drawable object in the gamecontext, draw
 		gameContext.activeScreen.draw(g);
-//		g.setFont(new Font(Font.DIALOG, Font.BOLD, 24));
-//		g.setColor(Color.white);
-//		g.drawString("hello", 50, 50);
 	}
 
 }
